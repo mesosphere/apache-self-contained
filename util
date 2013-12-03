@@ -15,16 +15,27 @@ function main {
 # Launch the bundled Apache.
 function run_apache {(
   export LD_LIBRARY_PATH=./lib PORT=9000
+  msg "Starting Apache on $PORT ..."
   ./httpd -f "$PWD"/httpd.conf
-  msg "Apache running on $PORT"
+  msg "... success."
 )}
 
-function bundle {
+function prep_bundle {
   cp -L /usr/sbin/httpd ./httpd
   mkdir -p modules
   cp -L /etc/httpd/modules/* ./modules/
   chmod a+rx ./modules/* ./httpd
   copy_libs
+}
+
+function bundle {
+  prep_bundle
+  local d="$(pwd -P)"
+  local b="$(basename "$d")"
+  local tmp=/tmp/"$b".tgz
+  msg "Bundling present directory to $tmp ..."
+  tar --exclude '.git*' -C "$(dirname "$d")" -cz "$b" -f "$tmp"
+  msg "... success."
 }
 
 # Copy libs required by an installed Apache in to ./lib, for packaging.
