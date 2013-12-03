@@ -1,0 +1,50 @@
+#!/bin/bash
+set -o errexit -o nounset -o pipefail
+function -h {
+cat <<USAGE
+ USAGE: ...
+
+USAGE
+}; function --help { -h ;}
+export LC_ALL=en_US.UTF-8
+
+function main {
+  run_apache
+}
+
+# Launch the bundled Apache.
+function run_apache {(
+  export LD_LIBRARY_PATH=./lib PORT=9000
+  ./httpd -f "$PWD"/httpd.conf
+  msg "Apache running on $PORT"
+)}
+
+function bundle {
+  cp -L /usr/sbin/httpd ./httpd
+  mkdir -p modules
+  cp -L /etc/httpd/modules/* ./modules/
+  chmod a+rx ./modules/* ./httpd
+  copy_libs
+}
+
+# Copy libs required by an installed Apache in to ./lib, for packaging.
+function copy_libs {
+  mkdir -p lib
+  linked_sos | while read -r lib
+               do cp -L "$lib" ./lib/
+               done
+  chmod a+rx lib/*
+}
+
+function linked_sos {
+  ldd /usr/sbin/httpd | egrep -o '=> /[^ ]+' | cut -c4-
+}
+
+function msg { out "$*" >&2 ;}
+function err { local x=$? ; msg "$*" ; return $(( $x == 0 ? 1 : $x )) ;}
+function out { printf '%s\n' "$*" ;}
+
+if [[ ${1:-} ]] && declare -F | cut -d' ' -f3 | fgrep -qx -- "${1:-}"
+then "$@"
+else main "$@"
+fi
