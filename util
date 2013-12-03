@@ -2,7 +2,33 @@
 set -o errexit -o nounset -o pipefail
 function -h {
 cat <<USAGE
- USAGE: ...
+ USAGE: ./util (run_apache)?
+        ./util bundle
+
+  In the first form, runs the bundled Apache binary. In the second form,
+  bundles the system Apache for transfer to another system.
+
+  To invoke the first form, calling ./util with no arguments is sufficient; it
+  is the default subcommand.
+
+ run_apache
+
+  Launch the bundled Apache (which is ./httpd). We ensure that LD_LIBRARY_PATH
+  points to the local lib directory, so that bundled libs are discovered and
+  used in preference to system libs.
+
+ bundle
+
+  Bundle an installed Apache and its shared libraries so that they can be
+  deployed as a unit.
+ 
+  To use this function, first install Apache with Yum. Then call:
+ 
+    sudo ./util bundle
+ 
+  The system Apache will be inspected to find its shared library dependencies,
+  which will be copied in to ./lib. Apache modules will be placed in ./modules.
+  The system Apache binary will also be copied to ./.
 
 USAGE
 }; function --help { -h ;}
@@ -12,7 +38,7 @@ function main {
   run_apache
 }
 
-# Launch the bundled Apache.
+# Implements run_apache subcommand (see documentation, above).
 function run_apache {(
   export LD_LIBRARY_PATH=./lib PORT=9000
   msg "Starting Apache on $PORT ..."
@@ -20,14 +46,7 @@ function run_apache {(
   msg "... success."
 )}
 
-function prep_bundle {
-  cp -L /usr/sbin/httpd ./httpd
-  mkdir -p modules
-  cp -L /etc/httpd/modules/* ./modules/
-  chmod a+rx ./modules/* ./httpd
-  copy_libs
-}
-
+# Implements bundle subcommand (see documentation, above).
 function bundle {
   prep_bundle
   local d="$(pwd -P)"
@@ -36,6 +55,14 @@ function bundle {
   msg "Bundling present directory to $tmp ..."
   tar --exclude '.git*' -C "$(dirname "$d")" -cz "$b" -f "$tmp"
   msg "... success."
+}
+
+function prep_bundle {
+  cp -L /usr/sbin/httpd ./httpd
+  mkdir -p modules
+  cp -L /etc/httpd/modules/* ./modules/
+  chmod a+rx ./modules/* ./httpd
+  copy_libs
 }
 
 # Copy libs required by an installed Apache in to ./lib, for packaging.
