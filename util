@@ -42,7 +42,7 @@ function main {
 function run_apache {(
   export LD_LIBRARY_PATH=./lib PORT=9000
   msg "Starting Apache on $PORT ..."
-  ./httpd -f "$PWD"/httpd.conf
+  ./httpd -DFOREGROUND -f "$PWD"/httpd.conf
   msg "... success."
 )}
 
